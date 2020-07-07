@@ -1,12 +1,10 @@
 require "socket"
-require "./auth"
+require "./auth.cr"
 
-client = TCPSocket.new("localhost", 12345)
+stdout = IO::Memory.new
+connfd = TCPSocket.new("127.0.0.1",12345)
 
-content = File.open("./cookie") do |file|
-	file.gets_to_end
-end
-
-client << "#{content}\r\n"
-response = client.gets
-client.close
+userinput = confd.gets.to_s.split(' ')
+process = Process.new(userinput[0],[userinput[1]], output: stdout)
+status - process.wait
+connfd << stdout.to_s

@@ -3,7 +3,7 @@ require "random/secure"
 require "openssl"
 
 
-module AUTH
+module MtAuth
 	extend self
 
 	def generate_token(hostname : String) : (String|Nil)
