@@ -13,8 +13,8 @@ class MtRpc
 		return "OK\r\n"	
 	end
 
-	def cmd_send_hook(cmd : String) : String
-		connfd = TCPSocket.new("127.0.0.1",12345)
+	def cmd_run_hook(cmd : String, rhost : String, rport : Int32) : String
+		connfd = TCPSocket.new(rhost,rport)
 		connfd << cmd
 		connfd.close
 		return "OK\r\n"
@@ -27,8 +27,8 @@ class MtRpc
 			return
 		end
 
-		def cmd_send(cmd : String) : Nil
-			result = cmd_send_hook(cmd)
+		def cmd_run(cmd : String, rhost : String, rport : Int32) : Nil
+			result = cmd_run_hook(cmd,rhost,rport)
 			p result
 			return
 		end
