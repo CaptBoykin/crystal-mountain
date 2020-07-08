@@ -12,6 +12,7 @@ def rpc_test_run(lhost : String, lport : Int32, rhost : String, rport : Int32) :
 end
 
 def agent_generate_run : Nil
+	p "[*] Generating new agent!"
 	MtAgentGen.agent_create("myagent","127.0.0.1",9999,"myagent_cookie")
 	MtAgentGen.create_cookie_file("myagent_cookie","127.0.0.1")
 end
