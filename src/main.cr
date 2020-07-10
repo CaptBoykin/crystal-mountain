@@ -13,10 +13,10 @@ def rpc_test_run(lhost : String, lport : Int32, rhost : String, rport : Int32) :
 	return
 end
 
-def agent_generate_run : Nil
+def agent_generate_run(agent_opts : Array(String), agent_name : String, agent_lhost : String, agent_lport : Int32, cookie_file : String) : Nil
 	p "[*] Generating new agent!"
-	MtAgentGen.agent_create("myagent","0.0.0.0",9999,"myagent_cookie",["--static"])
-	MtAgentGen.create_cookie_file("myagent_cookie","0.0.0.0")
+	MtAgentGen.agent_create(agent_name,agent_lhost,agent_lport,cookie_file,agent_opts)
+	MtAgentGen.create_cookie_file(agent_name,agent_lhost)
 	return
 end
 
@@ -69,16 +69,25 @@ OptionParser.parse do |parser|
 	lport = 9998
 	use_host_range = false
 	rhosts = Array(String).new
+	agent_opts = Array(String).new
+	agent_name = "myagent"
+	agent_lhost = "0.0.0.0"
+	agent_lport = 9999
+	cookie_file = "myagent_cookie"	
 
-	parser.on("-rh RHOST","--rhost=RHOST","Specify RHOST") do |rh|
+	parser.on("--agent-rhost=RHOST","Specify RHOST") do |rh|
 		rhost = rh
 	end
 	
-	parser.on("-rp RPORT","--rport=RPORT","Specify RPORT") do |rp|
+	parser.on("--agent-rport=RPORT","Specify RPORT") do |rp|
 		rport = rp.to_i
 	end
 
-	parser.on("-rhs RHOSTS","--rhosts=HOST_RANGE","Specify a range of RHOSTS.  Accepts: Comma delim single hosts OR a hosts file (one per line)") do |rhs|
+	parser.on("--agent-name=NAME","Specify Agent Name") do |name|
+		agent_name = name
+	end
+
+	parser.on("--agent-rhosts=HOST_RANGE","Specify a range of RHOSTS.  Accepts: Comma delim single hosts OR a hosts file (one per line)") do |rhs|
 		
 		rhs.split(',').each do |x|
 			rhosts.push(x)
@@ -87,8 +96,30 @@ OptionParser.parse do |parser|
 	use_host_range = true
 	end
 		
+	parser.on("--agent-compile-opts=OPTS","Agent linking options, comma delim") do |opts|
+		opts.split(',').each do |opt|
+			if opt == "static"
+				agent_opts.push("--static")
+			end
+			if opt == "release"
+				agent_opts.push("--release")
+			end
+			if opt == "cross-compile"
+				agent_opts.push("--cross-compile")
+			end
+			if opt == "progress"
+				agent_opts.push("--progress")
+			end
+			if opt == "verbose"
+				agent_opts.push("--verbose")
+			end
+			if opt == "thin"
+				agent_opts.push("--lto=thin")
+			end
+		end
+	end
 
-	parser.on("-t","--test","Test RPC 1") do 
+	parser.on("--test-run","Test RPC 1") do 
 
 		if ! use_host_range
 			rpc_test_run(lhost,lport,rhost,rport)
@@ -99,15 +130,15 @@ OptionParser.parse do |parser|
 		end
 	end
 
-	parser.on("-r","--rpc","Start RPC Master") do
+	parser.on("--rpc-run","Start RPC Master") do
 		rpc_master_run()
 	end
 	
-	parser.on("-m","--master","Start Agent Master") do 
+	parser.on("--agent-master-run","Start Agent Master") do 
 		agent_master_run()
 	end
 	
-	parser.on("-c CMD","--cmd-run=CMD","Send a shell cmd") do |str|
+	parser.on("--cmd-run=CMD","Send a shell cmd") do |str|
         if ! use_host_range
             cmd_run_run(str,lhost,lport,rhost,rport)
         elsif rhosts != Nil
@@ -119,8 +150,8 @@ OptionParser.parse do |parser|
 
 	end
 
-	parser.on("-a","--agent","Generate a new agent") do
-		agent_generate_run()
+	parser.on("--agent-generate","Generate a new agent") do
+		agent_generate_run(agent_opts,agent_name,agent_lhost,agent_lport,cookie_file)
 	end
 	
 	parser.on("-h","--help","This cruft") do
