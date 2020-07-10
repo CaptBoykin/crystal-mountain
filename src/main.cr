@@ -52,12 +52,7 @@ def host_range_from_file(file : String) : (Array(String)|Bool)
 		end
 	end
 
-	if hosts.size == Nil
-		return false
-	else
-		pp hosts
-		return hosts
-	end
+	return hosts
 end
 
 OptionParser.parse do |parser|
@@ -88,12 +83,20 @@ OptionParser.parse do |parser|
 	end
 
 	parser.on("--agent-rhosts=HOST_RANGE","Specify a range of RHOSTS.  Accepts: Comma delim single hosts OR a hosts file (one per line)") do |rhs|
-		
-		rhs.split(',').each do |x|
-			rhosts.push(x)
+	
+		begin
+			if File.file?(rhs)
+				rhosts = host_range_from_file(rhs)
+			else
+				rhs.split(',').each do |x|
+					rhosts.push(x)
+				end
+			end
+		rescue
+			p "[-] --rhosts accepts either comma delim hosts or a one-per-line rhosts file"
 		end
 
-	use_host_range = true
+		use_host_range = true
 	end
 		
 	parser.on("--agent-compile-opts=OPTS","Agent linking options, comma delim") do |opts|
@@ -120,15 +123,15 @@ OptionParser.parse do |parser|
 	end
 
 	parser.on("--test-run","Test RPC 1") do 
-
 		if ! use_host_range
 			rpc_test_run(lhost,lport,rhost,rport)
-		elsif rhosts != Nil
+		elsif rhosts.size > 0
 			rhosts.each do |host|
 				rpc_test_run(lhost,lport,host,rport)
 			end
 		end
 	end
+
 
 	parser.on("--rpc-run","Start RPC Master") do
 		rpc_master_run()
@@ -141,13 +144,11 @@ OptionParser.parse do |parser|
 	parser.on("--cmd-run=CMD","Send a shell cmd") do |str|
         if ! use_host_range
             cmd_run_run(str,lhost,lport,rhost,rport)
-        elsif rhosts != Nil
-            rhosts.each do |host|
-                cmd_run_run(str,lhost,lport,host,rport)
+		elsif rhosts.size > 0
+			rhosts.each do |host|
+				cmd_run_run(str,lhost,lport,host,rport)
             end
         end		
-	
-
 	end
 
 	parser.on("--agent-generate","Generate a new agent") do
