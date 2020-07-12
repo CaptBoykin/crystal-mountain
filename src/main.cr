@@ -2,6 +2,7 @@ require "./serv.cr"
 require "./auth.cr"
 require "./agent-gen.cr"
 require "./mt_rpc.cr"
+require "./ip4_addr.cr"
 
 require "option_parser"
 
@@ -59,7 +60,7 @@ OptionParser.parse do |parser|
 
 	cmd = ""
 	rhost = "127.0.0.1"
-	rport = 12345
+	rport = 9999
 	lhost = "127.0.0.1"
 	lport = 9998
 	use_host_range = false
@@ -70,19 +71,27 @@ OptionParser.parse do |parser|
 	agent_lport = 9999
 	cookie_file = "myagent_cookie"	
 
-	parser.on("--agent-rhost=RHOST","Specify RHOST") do |rh|
+	parser.on("--agent-rhost=RHOST","Specify address of a single agennt") do |rh|
 		rhost = rh
 	end
 	
-	parser.on("--agent-rport=RPORT","Specify RPORT") do |rp|
+	parser.on("--agent-rport=RPORT","Specify port of a single agent") do |rp|
 		rport = rp.to_i
 	end
 
-	parser.on("--agent-name=NAME","Specify Agent Name") do |name|
+	parser.on("--gen-agent-name=NAME","Specify Agent Name during generation") do |name|
 		agent_name = name
 	end
 
-	parser.on("--agent-rhosts=HOST_RANGE","Specify a range of RHOSTS.  Accepts: Comma delim single hosts OR a hosts file (one per line)") do |rhs|
+	parser.on("--gen-agent-lhost","Specify listening addred during generation") do |glhost|
+		agent_lhost = glhost
+	end
+
+	parser.on("--gen-agent-lport","Specify listening port during generation") do |glport|
+		agent_lport = glport.to_i
+	end
+
+	parser.on("--agent-rhosts=HOST_RANGE","Specify a range of RHOSTS. Comma delmin, (fmt. x.x.x.x:pp) OR a hosts file of the same fmt. (one per line). pp defaults to 9999") do |rhs|
 	
 		begin
 			if File.file?(rhs)
@@ -99,7 +108,7 @@ OptionParser.parse do |parser|
 		use_host_range = true
 	end
 		
-	parser.on("--agent-compile-opts=OPTS","Agent linking options, comma delim") do |opts|
+	parser.on("--gen-agent-compile-opts=OPTS","Agent linking options, comma delim") do |opts|
 		opts.split(',').each do |opt|
 			if opt == "static"
 				agent_opts.push("--static")
@@ -125,9 +134,27 @@ OptionParser.parse do |parser|
 	parser.on("--test-run","Test RPC 1") do 
 		if ! use_host_range
 			rpc_test_run(lhost,lport,rhost,rport)
-		elsif rhosts.size > 0
+		elsif use_host_range
 			rhosts.each do |host|
-				rpc_test_run(lhost,lport,host,rport)
+				o_rhost = host
+				o_rport = rport
+				begin
+					port = host.split(':')[1].to_i
+				rescue
+					port = o_rport
+				end
+			
+				begin
+					host = host.split(':')[0]
+				rescue
+					host = o_rhost
+				end	
+				
+				if Ip4.is_valid(host)
+					rpc_test_run(lhost,lport,host,port)
+				else
+					p "[-] #{host} is not a valid address. Skipping..."
+				end
 			end
 		end
 	end
@@ -144,14 +171,33 @@ OptionParser.parse do |parser|
 	parser.on("--cmd-run=CMD","Send a shell cmd") do |str|
         if ! use_host_range
             cmd_run_run(str,lhost,lport,rhost,rport)
-		elsif rhosts.size > 0
+		elsif use_host_range
 			rhosts.each do |host|
-				cmd_run_run(str,lhost,lport,host,rport)
+				
+				o_rhost = host
+				o_rport = rport
+				begin
+					port = host.split(':')[1].to_i				
+				rescue
+					port = o_rport
+				end
+
+				begin
+					host = host.split(':')[0]
+				rescue
+					host = o_rhost
+				end
+
+				if Ip4.is_valid(host)
+					cmd_run_run(str,lhost,lport,host,port)
+				else
+					p "[-] #{host} is not a valid address. Skipping..."
+				end
             end
         end		
 	end
 
-	parser.on("--agent-generate","Generate a new agent") do
+	parser.on("--gen-agent","Generate a new agent") do
 		agent_generate_run(agent_opts,agent_name,agent_lhost,agent_lport,cookie_file)
 	end
 	
