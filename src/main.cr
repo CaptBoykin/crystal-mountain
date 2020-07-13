@@ -1,6 +1,7 @@
 require "./serv.cr"
 require "./auth.cr"
-require "./agent-gen.cr"
+require "./agent_gen.cr"
+require "./agent_mgmt.cr"
 require "./mt_rpc.cr"
 require "./ip4_addr.cr"
 
@@ -40,6 +41,13 @@ end
 def cmd_run_run(cmd : String, lhost : String , lport : Int32 , rhost : String , rport : Int32) : Nil
     client = MtRpc::Client.new(lhost,lport)
     client.cmd_run(cmd,rhost,rport)
+	return
+end
+
+
+def agent_interactive(rhost : String , rport : Int32) : Nil
+	cl = TermFuncs.new()
+	cl.drop_to_shell(rhost,rport)
 	return
 end
 
@@ -201,6 +209,10 @@ OptionParser.parse do |parser|
 		agent_generate_run(agent_opts,agent_name,agent_lhost,agent_lport,cookie_file)
 	end
 	
+	parser.on("--agent-interactive","Interact with an agent's mgmt panel") do
+		agent_interactive(rhost,rport)
+	end
+
 	parser.on("-h","--help","This cruft") do
 		puts parser
 	end

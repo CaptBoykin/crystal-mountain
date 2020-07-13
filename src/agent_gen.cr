@@ -18,6 +18,7 @@ module MtAgentGen
                     fp.puts "    loop do"
                     fp.puts "        message = `\#{master.gets.to_s}`"
                     fp.puts "        master.puts(message)"
+					fp.puts "        master.puts(\"[FIN]\")"
                     fp.puts "    end"
                     fp.puts "    rescue e"
                     fp.puts "        puts \"master disconnected\""
