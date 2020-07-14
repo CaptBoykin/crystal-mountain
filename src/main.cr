@@ -46,8 +46,8 @@ end
 
 
 def agent_interactive(rhost : String , rport : Int32) : Nil
-	cl = TermFuncs.new()
-	cl.drop_to_shell(rhost,rport)
+	cl = AgentTerm.new()
+	cl.term_menu(rhost,rport)
 	return
 end
 

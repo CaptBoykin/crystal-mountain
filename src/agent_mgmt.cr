@@ -1,4 +1,5 @@
 require "./bin_paths.cr"
+require "./flashy_things.cr"
 require "socket"
 
 
@@ -41,7 +42,15 @@ class TermFuncs
                     found = true
                 end
             end
+		elsif ! found
+			USR_LOCAL_BIN.each do |path|
+				if cmd == path
+					full_cmd = "/usr/local/bin/#{cmd}"
+					found = true
+				end
+			end	
         end
+		
 
 		if found
 			return full_cmd
@@ -63,19 +72,15 @@ class TermFuncs
 		return true
 	end
 
-	def drop_to_shell(rhost : String, rport : Int32) : Nil
-		connfd = TCPSocket.new(rhost,rport)
-
-		connfd << "hostname\r\n"
-		hostname = connfd.gets
-		connfd.gets
-
-		connfd << "whoami\r\n"
-		username = connfd.gets
-		connfd.gets
+	def drop_to_shell(connfd : TCPSocket, hostname : (String|Nil), username : (String|Nil)) : Nil
+		if username == "root"
+			term_string = "[shell]:#{username}@#{hostname}#> "
+		else
+			term_string = "[shell]:#{username}@#{hostname}$> "
+		end
 
 		while true
-			printf("%s","#{username}@#{hostname}: ")
+			printf("%s","#{term_string}")
 			cmd = gets.to_s.chomp('\n').chomp('\r')
 		
 			cmd_file = cmd.split(' ')[0]
@@ -133,7 +138,32 @@ class AgentTerm < TermFuncs
 	def term_func : Nil
 	end
 
-	def term_menu : Nil
+	def term_menu(rhost : String, rport : Int32) : Nil
+        connfd = TCPSocket.new(rhost,rport)
+
+        connfd << "hostname\r\n"
+        hostname = connfd.gets
+        connfd.gets
+
+        connfd << "whoami\r\n"
+        username = connfd.gets
+        connfd.gets
+
+
+        while true
+			printf("%s",AGENT_MGMT_OPTS)
+            printf("%s","[main]:#{hostname}> ")
+            choice = gets.to_s
+            if choice == "1"
+                drop_to_shell(connfd,hostname,username)
+            else
+                p "[-] Invalid choice"
+            end
+		end
+
+		return	
+
+
 	end
 
 	
