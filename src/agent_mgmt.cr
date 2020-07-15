@@ -1,5 +1,7 @@
 require "./bin_paths.cr"
 require "./flashy_things.cr"
+
+require "openssl"
 require "socket"
 
 
@@ -111,7 +113,26 @@ class TermFuncs
 	def update_logs : Nil
 	end
 
-	def file_upload : Nil
+	def file_upload(connfd : TCPSocket, rhost : String, rport : Int32, src : String, dst : String) : Nil
+	
+		begin	
+			data = File.open(src,"rb") do |src_fd|
+				src_fd.gets_to_end
+			end
+		rescue
+			printf("%s\n","[-] Error opening file: #{src}")
+			return
+		end
+			
+		signature = OpenSSL::Digest.new("SHA256")
+
+		data.each_char do |c|
+			signature.update(c.to_s)
+		end
+		
+		# printf("%s\n","[*] digest: #{signature.final.hexstring}")
+			
+		return
 	end
 
 	def file_download : Nil
@@ -149,15 +170,53 @@ class AgentTerm < TermFuncs
         username = connfd.gets
         connfd.gets
 
+		connfd << "pwd\r\n"
+		pwd = connfd.gets
+		connfd.gets
 
         while true
-			printf("%s",AGENT_MGMT_OPTS)
             printf("%s","[main]:#{hostname}> ")
-            choice = gets.to_s
-            if choice == "1"
+            choice = gets.to_s.downcase.split(' ')
+			            
+			if choice[0] == "help"
+				printf("%s",AGENT_MGMT_HELP)
+			elsif choice[0] == "shell"
                 drop_to_shell(connfd,hostname,username)
-            else
+			elsif choice[0] == "upload"
+						
+				src = ""
+				dst = ""
+				if choice.size > 1
+					if File.exists?(choice[1])
+						src = choice[1]
+						src_arr = src.split('/') 
+						src_short = src_arr[src_arr.size-1]
+						# optional dst file
+						if choice.size > 2
+							if File.exists?(choice[2])
+								dst = choice[2]
+							else
+								p "[-] File error:  #{choice[2]}"
+							end
+						else
+							dst = "#{pwd}/#{src_short}"
+						end
+					end
+		
+					if src.size > 0 && dst.size > 0
+						file_upload(connfd, rhost, rport, src,dst)
+						
+						#debuggin
+						#p "#{src} -> #{dst}"
+					end
+				
+				else
+					printf("%s\n","File upload usage: upload <src> <dst>")
+					next				
+				end
+			else
                 p "[-] Invalid choice"
+				printf("%s",AGENT_MGMT_HELP)
             end
 		end
 
